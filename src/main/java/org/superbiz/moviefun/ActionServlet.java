@@ -19,6 +19,10 @@ package org.superbiz.moviefun;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallbackWithoutResult;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.superbiz.moviefun.movies.Movie;
 import org.superbiz.moviefun.movies.MoviesBean;
 
@@ -38,6 +42,15 @@ public class ActionServlet extends HttpServlet {
     private static final long serialVersionUID = -5832176047021911038L;
 
     public static int PAGE_SIZE = 5;
+
+    private final PlatformTransactionManager managerMovies;
+
+    private final TransactionTemplate templateMovies;
+
+    public ActionServlet(PlatformTransactionManager managerMovies) {
+        this.managerMovies = managerMovies;
+        this.templateMovies = new TransactionTemplate(managerMovies);
+    }
 
     @Autowired
     private MoviesBean moviesBean;
@@ -65,7 +78,13 @@ public class ActionServlet extends HttpServlet {
 
             Movie movie = new Movie(title, director, genre, rating, year);
 
-            moviesBean.addMovie(movie);
+            templateMovies.execute(new TransactionCallbackWithoutResult() {
+
+                public void doInTransactionWithoutResult(TransactionStatus status) {
+                    moviesBean.addMovie(movie);
+                }
+            });
+
             response.sendRedirect("moviefun");
             return;
 
